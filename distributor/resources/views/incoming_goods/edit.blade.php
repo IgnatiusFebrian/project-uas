@@ -18,9 +18,13 @@
         @csrf
         @method('PUT')
 
+        @php
+            $user = auth()->user();
+        @endphp
+
         <div class="mb-4">
             <label for="item_id" class="block text-gray-700 font-bold mb-2">Pilih Barang</label>
-            <select name="item_id" id="item_id" class="w-full border border-gray-300 rounded px-3 py-2">
+            <select name="item_id" id="item_id" class="w-full border border-gray-300 rounded px-3 py-2" {{ $user->role === 'employee' ? 'disabled' : '' }}>
                 <option value="">-- Pilih Barang --</option>
                 @foreach ($items as $item)
                     <option value="{{ $item->id }}" {{ $incomingGood->item_id == $item->id ? 'selected' : '' }}>
@@ -31,32 +35,29 @@
         </div>
 
         <div class="mb-4">
-            <label for="new_item_name" class="block text-gray-700 font-bold mb-2">Nama Barang Baru (jika ada)</label>
-            <input type="text" name="new_item_name" id="new_item_name" value="{{ old('new_item_name') }}" class="w-full border border-gray-300 rounded px-3 py-2" placeholder="Masukkan nama barang baru">
-        </div>
-
-        <div class="mb-4">
             <label for="quantity" class="block text-gray-700 font-bold mb-2">Jumlah</label>
             <input type="number" name="quantity" id="quantity" value="{{ old('quantity', $incomingGood->quantity) }}" class="w-full border border-gray-300 rounded px-3 py-2" min="1" required>
         </div>
 
         <div class="mb-4">
             <label for="price" class="block text-gray-700 font-bold mb-2">Harga</label>
-            <input type="number" step="0.01" name="price" id="price" value="{{ old('price', $incomingGood->price) }}" class="w-full border border-gray-300 rounded px-3 py-2" min="0" required>
+            <input type="number" step="0.01" name="price" id="price" value="{{ old('price', $incomingGood->price) }}" class="w-full border border-gray-300 rounded px-3 py-2" min="0" required {{ $user->role === 'employee' ? 'disabled' : '' }}>
         </div>
 
         <div class="mb-4">
             <label for="date" class="block text-gray-700 font-bold mb-2">Tanggal</label>
-            <input type="date" name="date" id="date" value="{{ old('date', $incomingGood->date->format('Y-m-d')) }}" class="w-full border border-gray-300 rounded px-3 py-2" required>
+            <input type="date" name="date" id="date" value="{{ old('date', $incomingGood->date->format('Y-m-d')) }}" class="w-full border border-gray-300 rounded px-3 py-2" required {{ $user->role === 'employee' ? 'disabled' : '' }}>
         </div>
 
-        <div class="mb-4">
-            <label for="notes" class="block text-gray-700 font-bold mb-2">Catatan</label>
-            <textarea name="notes" id="notes" class="w-full border border-gray-300 rounded px-3 py-2">{{ old('notes', $incomingGood->notes) }}</textarea>
-        </div>
 
-        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Update</button>
-        <a href="{{ route('incoming_goods.index') }}" class="ml-4 text-gray-600 hover:underline">Batal</a>
+        <div class="flex items-center justify-between">
+            <button type="submit" class="btn btn-primary">
+                Simpan
+            </button>
+            <a href="{{ route('incoming_goods.index') }}" class="btn btn-danger">
+                Batal
+            </a>
+        </div>
     </form>
 </div>
 @endsection

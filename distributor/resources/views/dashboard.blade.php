@@ -4,6 +4,17 @@
     <div class="container py-4">
         <h1 class="mb-4">Dashboard</h1>
 
+        @if($lowStockItems->count() > 0)
+        <div class="alert alert-warning">
+            <h5>Warning: Stok Barang Rendah</h5>
+            <ul>
+                @foreach($lowStockItems as $item)
+                    <li>{{ $item->name }} (Stock: {{ $item->stock }}, Minimum: {{ $item->minimum_stock }})</li>
+                @endforeach
+            </ul>
+        </div>
+        @endif
+
         <div class="row g-4 mb-4">
             <div class="col-md-4">
                 <div class="card text-center shadow-sm">
@@ -24,7 +35,7 @@
             <div class="col-md-4">
                 <div class="card text-center shadow-sm">
                     <div class="card-body">
-                        <h5 class="card-title">Total Transactions</h5>
+                        <h5 class="card-title">Total Transaksi</h5>
                         <p class="display-6">{{ $totalTransactions }}</p>
                     </div>
                 </div>
@@ -49,7 +60,7 @@
 
     <div class="card mb-4 shadow-sm">
         <div class="card-body">
-            <h5 class="card-title mb-3">Sales Over Time</h5>
+            <h5 class="card-title mb-3">Penjualan Per Hari</h5>
             <canvas id="salesOverTimeChart" height="100"></canvas>
         </div>
     </div>
@@ -63,21 +74,19 @@
 
     <div class="card shadow-sm">
         <div class="card-body">
-            <h5 class="card-title mb-3">Recent Transactions</h5>
+            <h5 class="card-title mb-3">Transaksi Terbaru</h5>
             <div class="table-responsive">
                 <table class="table table-bordered table-hover mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th>ID</th>
-                            <th>Type</th>
-                            <th>Date</th>
-                            <th>Total Price</th>
+                            <th>Tipe</th>
+                            <th>Tanggal</th>
+                            <th>Total Harga</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach($recentTransactions as $transaction)
                         <tr>
-                            <td>{{ $transaction['id'] }}</td>
                             <td>{{ ucfirst($transaction['type']) }}</td>
                             <td>{{ $transaction['date'] }}</td>
                             <td>

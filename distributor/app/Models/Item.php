@@ -9,7 +9,7 @@ class Item extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'stock', 'price'];
+    protected $fillable = ['name', 'category', 'stock', 'unit', 'price', 'minimum_stock', 'user_id'];
     protected $guarded = ['id'];
 
     public function incomingGoods()

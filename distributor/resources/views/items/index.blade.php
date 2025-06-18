@@ -34,9 +34,13 @@
         <thead class="table-light">
             <tr>
                 <th>Nama</th>
+                <th>Kategori</th>
                 <th>Stok</th>
+                <th>Satuan</th>
+                <th>Stok Minimum</th>
                 <th>Barang Keluar</th>
-                <th>Harga</th>
+                <th>Harga Per Item</th>
+                <th>Tanggal Dibuat</th>
                 <th>Aksi</th>
             </tr>
         </thead>
@@ -44,9 +48,13 @@
             @foreach($items as $item)
             <tr class="border-b border-gray-200 hover:bg-gray-100">
                 <td>{{ $item->name }}</td>
+                <td>{{ $item->category }}</td>
                 <td>{{ $item->stock }}</td>
+                <td>{{ $item->unit }}</td>
+                <td>{{ $item->minimum_stock }}</td>
                 <td>{{ $item->total_outgoing }}</td>
                 <td>{{ $item->price }}</td>
+                <td>{{ \Carbon\Carbon::parse($item->created_at)->setTimezone('Asia/Jakarta')->format('d/m/Y H:i:s') }}</td>
                 <td>
                     <a href="{{ route('items.edit', $item->id) }}" class="btn btn-warning btn-sm">Edit</a>
                     <a href="{{ route('outgoing_goods.create', ['item_id' => $item->id]) }}" class="btn btn-danger btn-sm ms-2">Barang Keluar</a>

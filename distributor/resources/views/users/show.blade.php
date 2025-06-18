@@ -5,7 +5,7 @@
     <h1 class="text-2xl font-bold mb-4">User Details</h1>
 
     <div class="mb-4">
-        <strong>Name:</strong> {{ $user->name }}
+        <strong>Nama:</strong> {{ $user->name }}
     </div>
 
     <div class="mb-4">

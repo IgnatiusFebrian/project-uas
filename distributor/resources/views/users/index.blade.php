@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="container py-4">
-    <h1 class="mb-4">Users</h1>
+    <h1 class="mb-4">Akun</h1>
 
     @if(session('success'))
         <div class="alert alert-success" role="alert">
@@ -11,7 +11,7 @@
     @endif
 
     <a href="{{ route('users.create') }}" class="btn btn-primary mb-4">
-        Add New User
+        Tambah Akun Baru
     </a>
 
     @if($users->isEmpty())
@@ -21,8 +21,7 @@
             <table class="table table-bordered table-hover">
                 <thead class="table-light">
                     <tr>
-                        <th>ID</th>
-                        <th>Name</th>
+                        <th>Nama</th>
                         <th>Email</th>
                         <th>Role</th>
                         <th>Actions</th>
@@ -31,7 +30,6 @@
                 <tbody>
                     @foreach($users as $user)
                     <tr>
-                        <td>{{ $user->id }}</td>
                         <td>{{ $user->name }}</td>
                         <td>{{ $user->email }}</td>
                         <td>{{ ucfirst($user->role) }}</td>

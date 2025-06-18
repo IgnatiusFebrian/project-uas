@@ -2,17 +2,24 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Item;
 use App\Models\OutgoingGoods;
+use App\Models\Item;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 class OutgoingGoodsController extends Controller
 {
     public function index()
     {
-        $outgoingGoods = OutgoingGoods::with(['item', 'user'])->latest()->get();
+        $outgoingGoods = OutgoingGoods::with(['item', 'user'])->get()->map(function ($item) {
+            if ($item->date instanceof \Carbon\Carbon) {
+                $item->formatted_date = $item->date->timezone('Asia/Jakarta')->format('d/m/Y H:i');
+            } else {
+                $item->formatted_date = Carbon::parse($item->date)->timezone('Asia/Jakarta')->format('d/m/Y H:i');
+            }
+            return $item;
+        });
+
         return view('outgoing_goods.index', compact('outgoingGoods'));
     }
 
@@ -29,49 +36,32 @@ class OutgoingGoodsController extends Controller
             'quantity' => 'required|integer|min:1',
             'price' => 'required|numeric|min:0',
             'date' => 'required|date',
-            'notes' => 'nullable|string'
+            'notes' => 'nullable|string|max:255',
         ]);
 
-        DB::beginTransaction();
-        try {
-            $item = Item::findOrFail($validated['item_id']);
+        $validated['user_id'] = auth()->id();
 
-            if ($item->stock < $validated['quantity']) {
-                return back()->withErrors(['quantity' => 'Quantity exceeds available stock.'])->withInput();
-            }
-
-            $validated['user_id'] = Auth::id();
-
-            $outgoingGoods = OutgoingGoods::create($validated);
-
-            // Update item stock
-            $item->stock -= $validated['quantity'];
-            $item->save();
-
-            DB::commit();
-            return redirect()->route('outgoing_goods.index')
-                ->with('success', 'Barang keluar berhasil ditambahkan');
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return back()
-                ->withInput()
-                ->withErrors(['error' => 'Terjadi kesalahan: ' . $e->getMessage()]);
+        // Check stock availability
+        $item = Item::findOrFail($validated['item_id']);
+        if ($item->stock < $validated['quantity']) {
+            return redirect()->back()->withErrors(['quantity' => 'Stok barang tidak mencukupi.'])->withInput();
         }
-    }
 
-    public function report()
-    {
-        $outgoingTransactions = OutgoingGoods::with(['item', 'user'])
-            ->latest()
-            ->get();
-        return view('outgoing_goods.report', compact('outgoingTransactions'));
+        // Create outgoing goods record
+        OutgoingGoods::create($validated);
+
+        // Decrement stock
+        $item->stock -= $validated['quantity'];
+        $item->save();
+
+        return redirect()->route('outgoing_goods.index')->with('success', 'Barang keluar berhasil ditambahkan.');
     }
 
     public function edit($id)
     {
-        $outgoingGood = OutgoingGoods::findOrFail($id);
+        $outgoingGoods = OutgoingGoods::findOrFail($id);
         $items = Item::all();
-        return view('outgoing_goods.edit', compact('outgoingGood', 'items'));
+        return view('outgoing_goods.edit', compact('outgoingGoods', 'items'));
     }
 
     public function update(Request $request, $id)
@@ -81,53 +71,20 @@ class OutgoingGoodsController extends Controller
             'quantity' => 'required|integer|min:1',
             'price' => 'required|numeric|min:0',
             'date' => 'required|date',
-            'notes' => 'nullable|string'
+            'notes' => 'nullable|string|max:255',
         ]);
 
-        DB::beginTransaction();
-        try {
-            $outgoingGood = OutgoingGoods::findOrFail($id);
-            $item = Item::findOrFail($validated['item_id']);
+        $outgoingGoods = OutgoingGoods::findOrFail($id);
+        $outgoingGoods->update($validated);
 
-            // Adjust stock based on quantity difference
-            $quantityDifference = $validated['quantity'] - $outgoingGood->quantity;
-
-            if ($item->stock < $quantityDifference) {
-                return back()->withErrors(['quantity' => 'Quantity exceeds available stock.'])->withInput();
-            }
-
-            $item->stock -= $quantityDifference;
-            $item->save();
-
-            $validated['user_id'] = Auth::id();
-
-            $outgoingGood->update($validated);
-
-            DB::commit();
-            return redirect()->route('outgoing_goods.index')
-                ->with('success', 'Barang keluar berhasil diperbarui');
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return back()
-                ->withInput()
-                ->withErrors(['error' => 'Terjadi kesalahan: ' . $e->getMessage()]);
-        }
+        return redirect()->route('outgoing_goods.index')->with('success', 'Barang keluar berhasil diperbarui.');
     }
 
     public function destroy($id)
     {
-        $outgoingGood = OutgoingGoods::findOrFail($id);
-        $item = $outgoingGood->item;
+        $outgoingGoods = OutgoingGoods::findOrFail($id);
+        $outgoingGoods->delete();
 
-        // Adjust stock
-        if ($item) {
-            $item->stock += $outgoingGood->quantity;
-            $item->save();
-        }
-
-        $outgoingGood->delete();
-
-        return redirect()->route('outgoing_goods.index')
-            ->with('success', 'Barang keluar berhasil dihapus');
+        return redirect()->route('outgoing_goods.index')->with('success', 'Barang keluar berhasil dihapus.');
     }
 }

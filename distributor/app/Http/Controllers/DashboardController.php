@@ -91,12 +91,12 @@ class DashboardController extends Controller
             $productSalesValues[] = $quantity;
         }
 
-        // Recent transactions: latest 5 from transactions and outgoing goods combined
-        $recentTransactions = Transaction::with('user')->orderBy('date', 'desc')->limit(5)->get();
+        // Recent transactions: latest 10 from transactions and outgoing goods combined
+        $recentTransactions = Transaction::with('user')->orderBy('date', 'desc')->limit(10)->get();
 
         $recentOutgoingGoods = \App\Models\OutgoingGoods::with('item', 'user')
             ->orderBy('date', 'desc')
-            ->limit(5)
+            ->limit(10)
             ->get();
 
         // Merge recent transactions and outgoing goods collections first
@@ -108,7 +108,7 @@ class DashboardController extends Controller
                 return [
                     'id' => $item->id,
                     'type' => 'Transaction',
-                    'date' => $item->date,
+                    'date' => $item->date->format('d/m/Y'),
                     'item_name' => null,
                     'quantity' => null,
                     'user_name' => $item->user->name,
@@ -118,11 +118,12 @@ class DashboardController extends Controller
                 return [
                     'id' => $item->id,
                     'type' => 'Outgoing Goods',
-                    'date' => $item->date,
+                    'date' => $item->date->format('d/m/Y'),
                     'item_name' => $item->item->name,
                     'quantity' => $item->quantity,
                     'user_name' => $item->user->name,
                     'notes' => $item->notes,
+                    'total_price' => $item->quantity * $item->price,
                 ];
             }
         })->sortByDesc('date')->values();
@@ -132,6 +133,9 @@ class DashboardController extends Controller
 
         $totalCost = \App\Models\IncomingGoods::selectRaw('SUM(quantity * price) as total_cost')->value('total_cost') ?? 0;
         $totalProfit = $netSales - $totalCost;
+
+        // Fetch items with stock below minimum_stock for notification
+        $lowStockItems = Item::whereColumn('stock', '<', 'minimum_stock')->get();
 
         return view('dashboard', [
             'netSales' => $netSales,
@@ -144,6 +148,7 @@ class DashboardController extends Controller
             'productSalesData' => $productSalesValues,
             'recentTransactions' => $recentCombined,
             'totalProfit' => $totalProfit,
+            'lowStockItems' => $lowStockItems,
         ]);
     }
 }

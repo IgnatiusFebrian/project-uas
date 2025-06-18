@@ -1,4 +1,4 @@
-@extends('layouts.app')
+ @extends('layouts.app')
 
 @section('content')
 <div class="container mx-auto px-4">
@@ -18,15 +18,8 @@
         @csrf
 
         <div class="mb-4">
-            <label class="block text-gray-700 text-sm font-bold mb-2" for="new_item_name">
-                Nama Barang Baru
-            </label>
-            <input type="text" name="new_item_name" id="new_item_name" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Masukkan nama barang baru jika tidak ada di daftar">
-        </div>
-
-        <div class="mb-4">
             <label class="block text-gray-700 text-sm font-bold mb-2" for="item_id">
-                Pilih Barang (jika sudah ada)
+                Pilih Barang
             </label>
             <select name="item_id" id="item_id" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
                 <option value="">Pilih Barang</option>
@@ -43,12 +36,20 @@
             <input type="number" name="quantity" id="quantity" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" required min="1">
         </div>
 
-        <div class="mb-4">
-            <label class="block text-gray-700 text-sm font-bold mb-2" for="price">
-                Harga Satuan
-            </label>
-            <input type="number" name="price" id="price" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" required min="0" step="0.01">
-        </div>
+        @php
+            $user = auth()->user();
+        @endphp
+
+        @if ($user->role === 'admin')
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="price">
+                    Harga Satuan
+                </label>
+                <input type="number" name="price" id="price" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" required min="0" step="0.01">
+            </div>
+        @elseif ($user->role === 'employee')
+            {{-- For employees, do not show price input --}}
+        @endif
 
         <div class="mb-4">
             <label class="block text-gray-700 text-sm font-bold mb-2" for="date">
@@ -57,18 +58,11 @@
             <input type="date" name="date" id="date" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" required value="{{ date('Y-m-d') }}">
         </div>
 
-        <div class="mb-4">
-            <label class="block text-gray-700 text-sm font-bold mb-2" for="notes">
-                Catatan
-            </label>
-            <textarea name="notes" id="notes" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"></textarea>
-        </div>
-
         <div class="flex items-center justify-between">
-            <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+            <button type="submit" class="btn btn-primary">
                 Simpan
             </button>
-            <a href="{{ route('incoming_goods.index') }}" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+            <a href="{{ route('incoming_goods.index') }}" class="btn btn-danger">
                 Batal
             </a>
         </div>

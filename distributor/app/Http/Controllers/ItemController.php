@@ -29,11 +29,15 @@ public function index(Request $request)
         $query->whereDate('items.created_at', '<=', $endDate);
     }
 
-    $items = $query->select(
+        $items = $query->select(
             'items.id',
             'items.name',
+            'items.category',
             'items.stock',
+            'items.unit',
+            'items.minimum_stock',
             'items.price',
+            'items.created_at',
             DB::raw('COALESCE(outgoing.total_outgoing, 0) as total_outgoing')
         )
         ->get();
@@ -49,28 +53,45 @@ public function index(Request $request)
 
     public function store(Request $request)
     {
-        $request->validate([
-            'existing_item' => 'nullable|exists:items,id',
-            'new_item_name' => 'nullable|string|required_without:existing_item',
-            'stock' => 'required|integer|min:1',
-            'price' => 'required|numeric|min:0',
-        ]);
+        $user = auth()->user();
 
-        if ($request->filled('existing_item')) {
-            // Update stock of existing item
+        if ($user->role === 'employee') {
+            // Employees can only add stock to existing items
+            $request->validate([
+                'existing_item' => 'required|exists:items,id',
+                'stock' => 'required|integer|min:1',
+            ]);
+
             $item = Item::findOrFail($request->existing_item);
             $item->stock += $request->stock;
             $item->save();
-        } else {
-            // Create new item
+
+            return redirect()->route('items.index')->with('success', 'Stok berhasil ditambahkan.');
+        } elseif ($user->role === 'admin') {
+            // Admins can create new items without stock input
+            $request->validate([
+                'new_item_name' => 'required|string',
+                'category' => 'nullable|string',
+                'unit' => 'nullable|string',
+                'price' => 'required|numeric|min:0',
+                'minimum_stock' => 'nullable|integer|min:0',
+            ]);
+
             Item::create([
                 'name' => $request->new_item_name,
-                'stock' => $request->stock,
+                'category' => $request->category,
+                'stock' => 0,
+                'unit' => $request->unit,
                 'price' => $request->price,
+                'minimum_stock' => $request->minimum_stock ?? 0,
+                'user_id' => auth()->id(),
             ]);
-        }
 
-        return redirect()->route('items.index')->with('success', 'Barang berhasil ditambahkan.');
+            return redirect()->route('items.index')->with('success', 'Barang berhasil ditambahkan.');
+        } else {
+            // Other roles cannot add stock or create items
+            return redirect()->route('items.index')->with('error', 'Unauthorized action. Only employees can add stock.');
+        }
     }
 
     public function edit(Item $item)
@@ -80,15 +101,35 @@ public function index(Request $request)
 
     public function update(Request $request, Item $item)
     {
-        $request->validate([
-            'name' => 'required',
-            'stock' => 'required|integer',
-            'price' => 'required|numeric',
-        ]);
+        $user = auth()->user();
 
-        $item->update($request->all());
+        if ($user->role === 'employee') {
+            // Employees can only update stock
+            $request->validate([
+                'stock' => 'required|integer|min:0',
+            ]);
 
-        return redirect()->route('items.index')->with('success', 'Barang berhasil diperbarui.');
+            $item->stock = $request->stock;
+            $item->save();
+
+            return redirect()->route('items.index')->with('success', 'Stok berhasil diperbarui.');
+        } elseif ($user->role === 'admin') {
+            // Admins can update all fields
+            $request->validate([
+                'name' => 'required|string',
+                'category' => 'nullable|string',
+                'stock' => 'required|integer|min:0',
+                'unit' => 'nullable|string',
+                'price' => 'required|numeric|min:0',
+                'minimum_stock' => 'nullable|integer|min:0',
+            ]);
+
+            $item->update($request->only(['name', 'category', 'stock', 'unit', 'price', 'minimum_stock']));
+
+            return redirect()->route('items.index')->with('success', 'Barang berhasil diperbarui.');
+        } else {
+            return redirect()->route('items.index')->with('error', 'Unauthorized action.');
+        }
     }
 
     public function destroy(Item $item)

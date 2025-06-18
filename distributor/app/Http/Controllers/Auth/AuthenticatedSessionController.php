@@ -31,6 +31,8 @@ class AuthenticatedSessionController extends Controller
         // Check if user is admin and store in session
         if (Auth::user()->role === 'admin') {
             $request->session()->put('is_admin', true);
+        } elseif (Auth::user()->role === 'employee') {
+            $request->session()->put('is_employee', true);
         }
 
         return redirect()->intended(route('dashboard', absolute: false));

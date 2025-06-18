@@ -16,6 +16,10 @@ class OutgoingGoods extends Model
         'user_id',
     ];
 
+    protected $casts = [
+        'date' => 'datetime',
+    ];
+
     public function item(): BelongsTo
     {
         return $this->belongsTo(Item::class);

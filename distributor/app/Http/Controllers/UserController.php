@@ -32,6 +32,7 @@ class UserController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'role' => 'employee', // Set default role to match DB constraint
         ]);
 
         return redirect()->route('users.index')->with('success', 'User created successfully.');

@@ -6,9 +6,14 @@
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav me-auto">
-            <li class="nav-item">
+                @if(Auth::check() && Auth::user()->role === 'admin')
+                <li class="nav-item">
                     <a class="nav-link" href="{{ route('items.index') }}">Laporan</a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ route('users.index') }}">Kelola Akun</a>
+                </li>
+                @elseif(Auth::check() && Auth::user()->role === 'employee')
                 <li class="nav-item">
                     <a class="nav-link" href="{{ route('incoming_goods.index') }}">Barang Masuk</a>
                 </li>
@@ -18,9 +23,7 @@
                 <li class="nav-item">
                     <a class="nav-link" href="{{ route('returns.index') }}">Retur Barang</a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ route('users.index') }}">Manage Accounts</a>
-                </li>
+                @endif
             </ul>
             <ul class="navbar-nav ms-auto align-items-center">
                 <li class="nav-item me-3">
@@ -41,7 +44,12 @@
                     </li>
                 @else
                     <li class="nav-item"><a class="nav-link" href="{{ route('login') }}">Login</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{{ route('register') }}">Daftar</a></li>
+                    @php
+                        $userCount = \App\Models\User::count();
+                    @endphp
+                    @if($userCount === 0)
+                        <li class="nav-item"><a class="nav-link" href="{{ route('register') }}">Daftar</a></li>
+                    @endif
                 @endauth
             </ul>
         </div>

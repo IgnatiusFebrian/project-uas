@@ -33,7 +33,7 @@
 
         <div class="mb-4">
             <label for="date" class="block font-medium text-gray-700">Tanggal</label>
-            <input type="date" name="date" id="date" value="{{ old('date', $returnGoods->date->format('Y-m-d')) }}" class="form-input w-full @error('date') border-red-500 @enderror">
+            <input type="date" name="date" id="date" value="{{ old('date', \Carbon\Carbon::parse($returnGoods->date)->format('Y-m-d')) }}" class="form-input w-full @error('date') border-red-500 @enderror">
             @error('date')
                 <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
             @enderror

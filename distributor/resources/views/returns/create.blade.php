@@ -4,6 +4,18 @@
 <div class="container mx-auto px-4">
     <h1 class="text-2xl font-bold mb-4">Tambah Retur Barang</h1>
 
+    @if(session('error'))
+        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4" role="alert">
+            <strong>Perhatian!</strong> {{ session('error') }}
+        </div>
+    @endif
+
+    @if($errors->has('quantity') && str_contains($errors->first('quantity'), 'exceeds total outgoing quantity'))
+        <div class="bg-red-200 border border-red-600 text-red-800 px-4 py-3 rounded mb-4" role="alert">
+            <strong>Barang Retur Melebihi Barang Keluar</strong>
+        </div>
+    @endif
+
     <form action="{{ route('returns.store') }}" method="POST">
         @csrf
 
@@ -28,6 +40,9 @@
             @error('quantity')
                 <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
             @enderror
+            @if($errors->has('quantity') && str_contains($errors->first('quantity'), 'exceeds total outgoing quantity'))
+                <p class="text-red-600 font-semibold mt-1">Barang Retur Melebihi Barang Keluar</p>
+            @endif
         </div>
 
         <div class="mb-4">
