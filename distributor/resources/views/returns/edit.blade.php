@@ -4,6 +4,22 @@
 <div class="container mx-auto px-4">
     <h1 class="text-2xl font-bold mb-4">Edit Retur Barang</h1>
 
+    @if ($errors->any())
+        <div class="alert alert-danger mb-4">
+            <ul class="mb-0">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
+    @if (session('success'))
+        <div class="alert alert-success mb-4">
+            {{ session('success') }}
+        </div>
+    @endif
+
     <form action="{{ route('returns.update', $returnGoods->id) }}" method="POST">
         @csrf
         @method('PUT')

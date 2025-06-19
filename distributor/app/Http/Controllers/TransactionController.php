@@ -12,7 +12,6 @@
  {
     public function index()
     {
-        // Fetch incoming goods and outgoing goods with related item and user
         $incomingGoods = \App\Models\IncomingGoods::with('item', 'user')->get()->map(function ($incoming) {
             $incoming->type = 'Masuk';
             return $incoming;
@@ -23,7 +22,6 @@
             return $outgoing;
         });
 
-        // Merge and sort by date descending
         $combined = $incomingGoods->merge($outgoingGoods)->sortByDesc('date')->values();
 
         return view('transactions.index', ['combined' => $combined]);
@@ -31,17 +29,14 @@
 
     public function report()
     {
-        // Aggregate transactions by type and date
         $transactionSummary = Transaction::selectRaw('type, date, COUNT(*) as count, SUM(total_price) as total')
             ->groupBy('type', 'date')
             ->orderBy('date', 'desc')
             ->get();
-       // Get current stock summary for all items
         $stockSummary = \App\Models\Item::select('name', 'stock')->get();
 
         $incomingTransactions = \App\Models\IncomingGoods::with('item', 'user')->get();
 
-        // Fetch all transactions for listing
         $transactions = Transaction::with('details')->orderBy('date', 'desc')->get();
 
        return view('transactions.report', compact('transactionSummary', 'stockSummary', 'incomingTransactions', 'transactions'));
@@ -65,7 +60,6 @@
         ]);
 
         if (!auth()->user()->is_admin) {
-            // Non-admin users must use existing prices
             foreach ($request->items as $item) {
                 if (!empty($item['item_id'])) {
                     $dbItem = Item::findOrFail($item['item_id']);
@@ -112,11 +106,8 @@
                     'total_price' => $item['quantity'] * $item['price'],
                 ]);
 
-                // Update stock
                 if ($request->type === 'masuk') {
                     $itemModel->stock += $item['quantity'];
-
-                    // Also create incoming goods record
                     \App\Models\IncomingGoods::create([
                         'item_id' => $itemId,
                         'quantity' => $item['quantity'],
@@ -152,13 +143,11 @@
 
     public function update(Request $request, Transaction $transaction)
     {
-        // For simplicity, disallow update for now or implement similar to store with stock adjustments
         return back()->withErrors('Update not implemented yet.');
     }
 
     public function destroy(Transaction $transaction)
     {
-        // For simplicity, disallow delete for now or implement stock rollback
        return back()->withErrors('Delete not implemented yet.');
     }
  }

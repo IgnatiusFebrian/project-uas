@@ -36,21 +36,14 @@ class OutgoingGoodsController extends Controller
             'quantity' => 'required|integer|min:1',
             'price' => 'required|numeric|min:0',
             'date' => 'required|date',
-            'notes' => 'nullable|string|max:255',
         ]);
 
         $validated['user_id'] = auth()->id();
-
-        // Check stock availability
         $item = Item::findOrFail($validated['item_id']);
         if ($item->stock < $validated['quantity']) {
             return redirect()->back()->withErrors(['quantity' => 'Stok barang tidak mencukupi.'])->withInput();
         }
-
-        // Create outgoing goods record
         OutgoingGoods::create($validated);
-
-        // Decrement stock
         $item->stock -= $validated['quantity'];
         $item->save();
 
@@ -71,7 +64,6 @@ class OutgoingGoodsController extends Controller
             'quantity' => 'required|integer|min:1',
             'price' => 'required|numeric|min:0',
             'date' => 'required|date',
-            'notes' => 'nullable|string|max:255',
         ]);
 
         $outgoingGoods = OutgoingGoods::findOrFail($id);

@@ -12,7 +12,6 @@ class OutgoingGoods extends Model
         'quantity',
         'price',
         'date',
-        'notes',
         'user_id',
     ];
 

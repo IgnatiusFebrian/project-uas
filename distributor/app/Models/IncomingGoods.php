@@ -11,7 +11,6 @@ class IncomingGoods extends Model
         'item_id',
         'quantity',
         'date',
-        'notes',
         'price'
     ];
 

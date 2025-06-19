@@ -10,35 +10,57 @@ use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
+    /**
+     * Menampilkan data dashboard utama.
+     *
+     * Menghitung berbagai metrik seperti penjualan bersih, total transaksi,
+     * jumlah barang terjual, stok total, data penjualan dari waktu ke waktu,
+     * penjualan produk, transaksi terbaru, keuntungan total, dan barang dengan stok rendah.
+     *
+     * @return \Illuminate\View\View
+     */
     public function index()
     {
-        // Net sales: sum of total_price from transaction_details + outgoing_goods
-        $transactionNetSales = TransactionDetail::sum('total_price');
-        $outgoingNetSales = \App\Models\OutgoingGoods::sum(DB::raw('quantity * price'));
-        $netSales = $transactionNetSales + $outgoingNetSales;
+        // Menghitung total penjualan dari transaksi dengan total harga > 0
+        $transactionSales = TransactionDetail::join('transactions', 'transaction_details.transaction_id', '=', 'transactions.id')
+            ->where('transactions.total_price', '>', 0)
+            ->sum('transaction_details.total_price');
 
-        // Total transactions count + outgoing goods count
+        // Menghitung total pengembalian dari transaksi dengan total harga < 0
+        $transactionReturns = TransactionDetail::join('transactions', 'transaction_details.transaction_id', '=', 'transactions.id')
+            ->where('transactions.total_price', '<', 0)
+            ->sum('transaction_details.total_price');
+
+        // Menghitung total penjualan barang keluar (outgoing goods)
+        $outgoingNetSales = \App\Models\OutgoingGoods::sum(DB::raw('quantity * price'));
+
+        // Menghitung penjualan bersih total
+        $netSales = $transactionSales + $outgoingNetSales + $transactionReturns;
+
+        // Menghitung total transaksi (transaksi + barang keluar)
         $totalTransactions = Transaction::count() + \App\Models\OutgoingGoods::count();
 
-        // Items sold: sum of quantity in transaction_details + outgoing_goods
+        // Menghitung jumlah barang yang terjual (dari transaksi dan barang keluar)
         $itemsSold = TransactionDetail::sum('quantity') + \App\Models\OutgoingGoods::sum('quantity');
 
-        // Total stock: sum of stock in items only
+        // Menghitung total stok barang
         $totalStock = Item::sum('stock');
 
-        // Sales over time: combine transactions and outgoing goods by date
+        // Mengambil data penjualan transaksi per tanggal
         $transactionSales = Transaction::select(
             DB::raw('DATE(date) as date'),
             DB::raw('SUM(total_price) as total_sales')
         )
         ->groupBy('date');
 
+        // Mengambil data penjualan barang keluar per tanggal
         $outgoingSales = \App\Models\OutgoingGoods::select(
             DB::raw('DATE(date) as date'),
             DB::raw('SUM(quantity * price) as total_sales')
         )
         ->groupBy('date');
 
+        // Menggabungkan data penjualan transaksi dan barang keluar, lalu mengelompokkan berdasarkan tanggal
         $salesOverTimeData = $transactionSales->unionAll($outgoingSales)
             ->orderBy('date')
             ->get()
@@ -47,10 +69,12 @@ class DashboardController extends Controller
                 return $group->sum('total_sales');
             });
 
+        // Mendapatkan label tanggal untuk grafik penjualan
         $salesOverTimeLabels = $salesOverTimeData->keys();
+        // Mendapatkan nilai penjualan untuk grafik penjualan
         $salesOverTimeValues = $salesOverTimeData->values();
 
-        // Product sales: sum quantity grouped by item from transaction_details and outgoing_goods
+        // Mengambil data penjualan produk dari transaksi
         $transactionProductSales = TransactionDetail::select(
             'item_id',
             DB::raw('SUM(quantity) as total_quantity')
@@ -59,6 +83,7 @@ class DashboardController extends Controller
         ->with('item')
         ->get();
 
+        // Mengambil data penjualan produk dari barang keluar
         $outgoingProductSales = \App\Models\OutgoingGoods::select(
             'item_id',
             DB::raw('SUM(quantity) as total_quantity')
@@ -67,7 +92,7 @@ class DashboardController extends Controller
         ->with('item')
         ->get();
 
-        // Merge product sales data
+        // Menggabungkan data penjualan produk dari transaksi dan barang keluar
         $productSalesMap = [];
 
         foreach ($transactionProductSales as $ps) {
@@ -82,6 +107,7 @@ class DashboardController extends Controller
             }
         }
 
+        // Menyiapkan label dan nilai penjualan produk untuk grafik
         $productSalesLabels = [];
         $productSalesValues = [];
 
@@ -91,24 +117,25 @@ class DashboardController extends Controller
             $productSalesValues[] = $quantity;
         }
 
-        // Recent transactions: latest 10 from transactions and outgoing goods combined
+        // Mengambil 10 transaksi terbaru beserta data user
         $recentTransactions = Transaction::with('user')->orderBy('date', 'desc')->limit(10)->get();
 
+        // Mengambil 10 barang keluar terbaru beserta data item dan user
         $recentOutgoingGoods = \App\Models\OutgoingGoods::with('item', 'user')
             ->orderBy('date', 'desc')
             ->limit(10)
             ->get();
 
-        // Merge recent transactions and outgoing goods collections first
+        // Menggabungkan koleksi transaksi dan barang keluar terbaru
         $recentCombinedCollection = $recentTransactions->merge($recentOutgoingGoods);
 
-        // Map the merged collection to arrays and sort by date descending
+        // Memetakan data gabungan untuk tampilan di dashboard
         $recentCombined = $recentCombinedCollection->map(function ($item) {
             if ($item instanceof Transaction) {
                 return [
                     'id' => $item->id,
                     'type' => 'Transaction',
-                    'date' => $item->date->format('d/m/Y'),
+                    'date' => is_string($item->date) ? date('d/m/Y', strtotime($item->date)) : $item->date->format('d/m/Y'),
                     'item_name' => null,
                     'quantity' => null,
                     'user_name' => $item->user->name,
@@ -118,7 +145,7 @@ class DashboardController extends Controller
                 return [
                     'id' => $item->id,
                     'type' => 'Outgoing Goods',
-                    'date' => $item->date->format('d/m/Y'),
+                    'date' => is_string($item->date) ? date('d/m/Y', strtotime($item->date)) : $item->date->format('d/m/Y'),
                     'item_name' => $item->item->name,
                     'quantity' => $item->quantity,
                     'user_name' => $item->user->name,
@@ -128,15 +155,16 @@ class DashboardController extends Controller
             }
         })->sortByDesc('date')->values();
 
-        // Profit calculation is skipped due to missing cost data
-        // Implementing a basic profit calculation: total sales revenue - total cost of goods sold
-
+        // Menghitung total biaya dari barang masuk
         $totalCost = \App\Models\IncomingGoods::selectRaw('SUM(quantity * price) as total_cost')->value('total_cost') ?? 0;
+
+        // Menghitung total keuntungan (penjualan bersih - total biaya)
         $totalProfit = $netSales - $totalCost;
 
-        // Fetch items with stock below minimum_stock for notification
+        // Mengambil daftar barang dengan stok rendah
         $lowStockItems = Item::whereColumn('stock', '<', 'minimum_stock')->get();
 
+        // Mengembalikan view dashboard dengan data yang sudah disiapkan
         return view('dashboard', [
             'netSales' => $netSales,
             'totalTransactions' => $totalTransactions,

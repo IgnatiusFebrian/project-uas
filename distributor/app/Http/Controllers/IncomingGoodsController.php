@@ -14,7 +14,6 @@ class IncomingGoodsController extends Controller
     {
         $user = Auth::user();
 
-        // Fetch all incoming goods records with related item and user data for all users
         $incomingGoods = IncomingGoods::with(['item', 'user'])->latest()->get();
 
         return view('incoming_goods.index', compact('incomingGoods'));
@@ -22,7 +21,6 @@ class IncomingGoodsController extends Controller
 
     public function create()
     {
-        // Get all items without filtering by user_id
         $items = Item::all();
 
         \Log::info('Items passed to incoming_goods.create view:', $items->toArray());
@@ -34,12 +32,10 @@ class IncomingGoodsController extends Controller
         $user = Auth::user();
 
         if ($user->role === 'employee') {
-            // Employees can only add stock to existing items, no new item creation, no price input
             $validated = $request->validate([
                 'item_id' => 'required|exists:items,id',
                 'quantity' => 'required|integer|min:1',
                 'date' => 'required|date',
-                'notes' => 'nullable|string'
             ]);
 
             $item = Item::find($validated['item_id']);
@@ -54,13 +50,11 @@ class IncomingGoodsController extends Controller
                 $incomingGoods = IncomingGoods::create([
                     'item_id' => $validated['item_id'],
                     'quantity' => $validated['quantity'],
-                    'price' => $item->price, // use existing item price
+                    'price' => $item->price,
                     'date' => $validated['date'],
-                    'notes' => $validated['notes'] ?? null,
                     'user_id' => $user->id,
                 ]);
 
-                // Update item stock
                 $item->stock += $validated['quantity'];
                 $item->save();
 
@@ -74,19 +68,16 @@ class IncomingGoodsController extends Controller
                     ->withErrors(['error' => 'Terjadi kesalahan: ' . $e->getMessage()]);
             }
         } elseif ($user->role === 'admin') {
-            // Admins can create new items or add incoming goods with price input
             $validated = $request->validate([
                 'item_id' => 'nullable|exists:items,id',
                 'new_item_name' => 'nullable|string',
                 'quantity' => 'required|integer|min:1',
                 'price' => 'required|numeric|min:0',
                 'date' => 'required|date',
-                'notes' => 'nullable|string'
             ]);
 
             DB::beginTransaction();
             try {
-                // Determine item_id based on new_item_name or existing item_id
                 if (!empty($validated['new_item_name'])) {
                     $item = Item::create([
                         'name' => $validated['new_item_name'],
@@ -143,7 +134,6 @@ class IncomingGoodsController extends Controller
                 $incomingGood = IncomingGoods::findOrFail($id);
                 $item = $incomingGood->item;
 
-                // Adjust stock based on quantity difference
                 $quantityDifference = $validated['quantity'] - $incomingGood->quantity;
 
                 $item->stock += $quantityDifference;
@@ -170,14 +160,12 @@ class IncomingGoodsController extends Controller
                 'quantity' => 'required|integer|min:1',
                 'price' => 'required|numeric|min:0',
                 'date' => 'required|date',
-                'notes' => 'nullable|string'
             ]);
 
             DB::beginTransaction();
             try {
                 $incomingGood = IncomingGoods::findOrFail($id);
 
-                // Determine item_id based on new_item_name or existing item_id
                 if (!empty($validated['new_item_name'])) {
                     $item = Item::create([
                         'name' => $validated['new_item_name'],
@@ -191,7 +179,6 @@ class IncomingGoodsController extends Controller
                     return back()->withErrors(['item_id' => 'The item id field is required.'])->withInput();
                 }
 
-                // Adjust stock based on quantity difference
                 $quantityDifference = $validated['quantity'] - $incomingGood->quantity;
 
                 $item->stock += $quantityDifference;

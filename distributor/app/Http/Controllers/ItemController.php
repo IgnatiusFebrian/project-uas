@@ -56,7 +56,6 @@ public function index(Request $request)
         $user = auth()->user();
 
         if ($user->role === 'employee') {
-            // Employees can only add stock to existing items
             $request->validate([
                 'existing_item' => 'required|exists:items,id',
                 'stock' => 'required|integer|min:1',
@@ -68,7 +67,6 @@ public function index(Request $request)
 
             return redirect()->route('items.index')->with('success', 'Stok berhasil ditambahkan.');
         } elseif ($user->role === 'admin') {
-            // Admins can create new items without stock input
             $request->validate([
                 'new_item_name' => 'required|string',
                 'category' => 'nullable|string',
@@ -114,7 +112,6 @@ public function index(Request $request)
 
             return redirect()->route('items.index')->with('success', 'Stok berhasil diperbarui.');
         } elseif ($user->role === 'admin') {
-            // Admins can update all fields
             $request->validate([
                 'name' => 'required|string',
                 'category' => 'nullable|string',
